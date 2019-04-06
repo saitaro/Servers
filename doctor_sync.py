@@ -91,16 +91,14 @@ class HttpHandler(BaseHTTPRequestHandler):
         in the DATABASE, then send it's id in the response message.
         '''
         content_length = int(self.headers['Content-Length'])
-
         file_content = self.rfile.read(content_length)
-        file_name = re.findall(r'name="([^/\\:*?"<>|]+)\.\w+"$',
-                               self.headers['Content-Disposition'])[0]
-        file_extension = re.findall(r'\.(\w+)"$', 
-                                    self.headers['Content-Disposition'])[0]
+        
+        header = re.findall(r'name="(.+)"', self.headers['Content-Disposition'])
+        filename, extension = header[0].split('.')
         
         uuid = uuid4()
 
-        with open(path.join(FILEPATH, f"{uuid}.{file_extension}"), 'wb') as file:
+        with open(path.join(FILEPATH, f"{uuid}.{extension}"), 'wb') as file:
             file.write(file_content)
         
         conn = sqlite3.connect(DATABASE)
@@ -112,8 +110,8 @@ class HttpHandler(BaseHTTPRequestHandler):
                             :upload_date
                         );'''
             conn.execute(query, {'uuid': str(uuid), 
-                                 'filename': file_name,
-                                 'extension': file_extension,
+                                 'filename': filename,
+                                 'extension': extension,
                                  'upload_date': datetime.now()})
         conn.close()
 
