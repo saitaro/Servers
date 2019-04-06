@@ -33,9 +33,9 @@ class HttpHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         '''
-        Check if a record for the given id exists in the database and
+        Check if a record for the given id exists in the DATABASE and
         send the respective response to user; if 'download' parameter 
-        provided, download the existing file to user from Uploads.
+        provided, download the existing file to user from FILEPATH.
         '''
         get_query = urlsplit(self.path).query
         params = dict(parse_qsl(get_query))
@@ -87,8 +87,8 @@ class HttpHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         '''
-        Upload a file to the server file system and create the record
-        for that in the db, then send it's id in the response message.
+        Upload a file to FILEPATH and create the record for that
+        in the DATABASE, then send it's id in the response message.
         '''
         content_length = int(self.headers['Content-Length'])
 
