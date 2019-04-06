@@ -60,9 +60,17 @@ class HttpHandler(BaseHTTPRequestHandler):
                     self.send_response(code=200)
                     self.end_headers()
 
-                    with open(path.join(FILEPATH, f'{file_id}.{extension}'), 'rb') as file:
-                        data = file.read()
-                        self.wfile.write(data)
+                    try:
+                        filepath = path.join(FILEPATH, f'{file_id}.{extension}')
+                        with open(filepath, 'rb') as file:
+                            data = file.read()
+                            self.wfile.write(data)
+
+                    except FileNotFoundError:
+                        self.send_response(
+                            code=404, 
+                            message=f'File with id {file_id} was deleted.')
+                        self.end_headers()
                 else:
                     self.send_response(
                         code=200,
