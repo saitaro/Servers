@@ -2,7 +2,7 @@ import socketserver
 import sqlite3
 import re
 from datetime import datetime
-from os import path, getcwd, listdir, mkdir
+from os import path, getcwd, mkdir
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlsplit, parse_qsl
 from uuid import uuid4
