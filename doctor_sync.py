@@ -45,7 +45,7 @@ class HttpHandler(BaseHTTPRequestHandler):
             file_id = params['id']
 
             try:
-                with sqlite3.connect(DATABASE) as conn:
+                with closing(sqlite3.connect(DATABASE)) as conn:
                     cursor = conn.cursor()
                     query = f'''SELECT filename, extension, upload_date
                                 FROM filepaths 
@@ -54,9 +54,9 @@ class HttpHandler(BaseHTTPRequestHandler):
                     cursor.execute(query, {'id': file_id})
                     db_response = cursor.fetchone()
 
-                conn.close()
-
             except sqlite3.DatabaseError as e:
+                self.send_response(code=500, message=f'Database error')
+                self.end_headers()
                 print('Database error :', e)
 
             if db_response:
