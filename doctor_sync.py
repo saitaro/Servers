@@ -72,9 +72,6 @@ class HttpHandler(BaseHTTPRequestHandler):
                     filepath = path.join(FILEPATH, f'{file_id}.{extension}')
                     with open(filepath, 'rb') as file:
                         self.send_response(code=200)
-                        self.send_header("Access-Control-Allow-Origin","*")
-                        self.send_header("Access-Control-Allow-Methods","*")
-                        self.send_header("Access-Control-Allow-Headers","*")
                         self.send_header(
                             'Content-Disposition',
                             f'attachment; filename="{filename}.{extension}"'
@@ -116,8 +113,8 @@ class HttpHandler(BaseHTTPRequestHandler):
             return
 
         file_content = self.rfile.read(content_length)
-        header = re.findall(r'name="(.+)"', self.headers['Content-Disposition'])
-        filename, extension = header[0].split('.')
+        header = re.findall(r'name="(.+)\.(\S+)"', self.headers['Content-Disposition'])
+        filename, extension = header[0]
         
         uuid = uuid4()
 
