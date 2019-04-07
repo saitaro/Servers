@@ -27,6 +27,7 @@ if not path.isfile(DATABASE):
                             upload_date TEXT
                         );''')
     conn.close()
+    print(f'Database {DATABASE} created')
     
 
 class HttpHandler(BaseHTTPRequestHandler):
@@ -41,55 +42,63 @@ class HttpHandler(BaseHTTPRequestHandler):
         get_query = urlsplit(self.path).query
         params = dict(parse_qsl(get_query))
 
-        if 'id' in params:
-            file_id = params['id']
-
-            try:
-                with closing(sqlite3.connect(DATABASE)) as conn:
-                    cursor = conn.cursor()
-                    query = f'''SELECT filename, extension, upload_date
-                                FROM filepaths 
-                                WHERE uuid=:id;
-                            '''
-                    cursor.execute(query, {'id': file_id})
-                    db_response = cursor.fetchone()
-
-            except sqlite3.DatabaseError as e:
-                self.send_response(code=500, message='Database error')
-                self.end_headers()
-                print('Database error :', e)
-
-            if db_response:
-                filename, extension, upload_date = db_response
-            
-                if 'download' in params:
-                    self.send_response(code=200)
-                    self.end_headers()
-
-                    try:
-                        filepath = path.join(FILEPATH, f'{file_id}.{extension}')
-                        with open(filepath, 'rb') as file:
-                            data = file.read()
-                            self.wfile.write(data)
-
-                    except FileNotFoundError:
-                        self.send_response(
-                            code=404, 
-                            message=f'File with id {file_id} was deleted.')
-                        self.end_headers()
-                else:
-                    self.send_response(
-                        code=200,
-                        message=f'File {filename}.{extension} uploaded at {upload_date}')
-                    self.end_headers()
-            else:
-                self.send_response(code=404, 
-                                   message=f'No files found with id {file_id}')
-                self.end_headers()
-        else:
+        if 'id' not in params:
             self.send_response_only(code=200)
             self.end_headers()
+            return
 
+        file_id = params['id']
+
+        try:
+            with closing(sqlite3.connect(DATABASE)) as conn:
+                cursor = conn.cursor()
+                query = f'''SELECT filename, extension, upload_date
+                            FROM filepaths 
+                            WHERE uuid=:id;
+                        '''
+                cursor.execute(query, {'id': file_id})
+                db_response = cursor.fetchone()
+
+        except sqlite3.DatabaseError as e:
+            self.send_response(code=500, message='Database error')
+            self.end_headers()
+            print('Database error :', e)
+
+        if db_response:
+            filename, extension, upload_date = db_response
+        
+            if 'download' in params:
+                try:
+                    filepath = path.join(FILEPATH, f'{file_id}.{extension}')
+                    with open(filepath, 'rb') as file:
+                        self.send_response(code=200)
+                        self.send_header("Access-Control-Allow-Origin","*")
+                        self.send_header("Access-Control-Allow-Methods","*")
+                        self.send_header("Access-Control-Allow-Headers","*")
+                        self.send_header(
+                            'Content-Disposition',
+                            f'attachment; filename="{filename}.{extension}"'
+                        )
+                        self.end_headers()
+                        data = file.read()
+                        self.wfile.write(data)
+
+
+                except FileNotFoundError:
+                    self.send_response(
+                        code=404,
+                        message=f'File with id {file_id} was deleted.')
+                    self.end_headers()
+            else:
+                self.send_response(
+                    code=200,
+                    message=f'File {filename}.{extension} uploaded at {upload_date}')
+                self.end_headers()
+        else:
+            self.send_response(code=404, 
+                                message=f'No files found with id {file_id}')
+            self.end_headers()
+    
     def do_POST(self):
         '''
         Upload a file to FILEPATH and create the record for that
