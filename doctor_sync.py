@@ -5,6 +5,7 @@ from datetime import datetime
 from os import path, getcwd, mkdir
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlsplit, parse_qsl
+from contextlib import closing
 from uuid import uuid4
 
 
@@ -43,15 +44,20 @@ class HttpHandler(BaseHTTPRequestHandler):
         if 'id' in params:
             file_id = params['id']
 
-            conn = sqlite3.connect(DATABASE)
-            cursor = conn.cursor()
-            query = f'''SELECT filename, extension, upload_date
-                        FROM filepaths 
-                        WHERE uuid=:id;
-                    '''
-            cursor.execute(query, {'id': file_id})
-            db_response = cursor.fetchone()
-            conn.close()
+            try:
+                with sqlite3.connect(DATABASE) as conn:
+                    cursor = conn.cursor()
+                    query = f'''SELECT filename, extension, upload_date
+                                FROM filepaths 
+                                WHERE uuid=:id;
+                            '''
+                    cursor.execute(query, {'id': file_id})
+                    db_response = cursor.fetchone()
+
+                conn.close()
+
+            except sqlite3.DatabaseError as e:
+                print('Database error :', e)
 
             if db_response:
                 filename, extension, upload_date = db_response
@@ -101,22 +107,27 @@ class HttpHandler(BaseHTTPRequestHandler):
         with open(path.join(FILEPATH, f"{uuid}.{extension}"), 'wb') as file:
             file.write(file_content)
         
-        conn = sqlite3.connect(DATABASE)
-        with conn:
-            query = f'''INSERT INTO filepaths VALUES (
-                            :uuid,
-                            :filename,
-                            :extension,
-                            :upload_date
+        try:
+            with sqlite3.connect(DATABASE) as conn:
+                query = '''INSERT INTO filepaths VALUES (
+                                :uuid,
+                                :filename,
+                                :extension,
+                                :upload_date
                         );'''
-            conn.execute(query, {'uuid': str(uuid), 
-                                 'filename': filename,
-                                 'extension': extension,
-                                 'upload_date': datetime.now()})
-        conn.close()
+                conn.execute(query, {'uuid': str(uuid), 
+                                    'filename': filename,
+                                    'extension': extension,
+                                    'upload_date': datetime.now()})
+            conn.close()
 
-        self.send_response(code=201, message=f'File saved with id {uuid}')
-        self.end_headers()
+            self.send_response(code=201, message=f'File saved with id {uuid}')
+            self.end_headers()
+
+        except sqlite3.DatabaseError as e:
+            self.send_response(code=500, message=f'Database error')
+            self.end_headers()
+            print('Database error :', e)
 
 
 if __name__ == "__main__":
