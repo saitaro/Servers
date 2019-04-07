@@ -80,8 +80,7 @@ class HttpHandler(BaseHTTPRequestHandler):
                 else:
                     self.send_response(
                         code=200,
-                        message=f'File {filename}.{extension} uploaded at {upload_date}'
-                    )
+                        message=f'File {filename}.{extension} uploaded at {upload_date}')
                     self.end_headers()
             else:
                 self.send_response(code=404, 
@@ -120,15 +119,15 @@ class HttpHandler(BaseHTTPRequestHandler):
         try:
             with sqlite3.connect(DATABASE) as conn:
                 query = '''INSERT INTO filepaths VALUES (
-                                :uuid,
-                                :filename,
-                                :extension,
-                                :upload_date
-                        );'''
+                               :uuid,
+                               :filename,
+                               :extension,
+                               :upload_date
+                           );'''
                 conn.execute(query, {'uuid': str(uuid), 
-                                    'filename': filename,
-                                    'extension': extension,
-                                    'upload_date': datetime.now()})
+                                     'filename': filename,
+                                     'extension': extension,
+                                     'upload_date': datetime.now()})
             conn.close()
 
             self.send_response(code=201, message=f'File saved with id {uuid}')
