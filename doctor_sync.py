@@ -83,7 +83,6 @@ class HttpHandler(BaseHTTPRequestHandler):
                         data = file.read()
                         self.wfile.write(data)
 
-
                 except FileNotFoundError:
                     self.send_response(
                         code=404,
