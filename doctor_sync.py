@@ -97,37 +97,42 @@ class HttpHandler(BaseHTTPRequestHandler):
         in the DATABASE, then send it's id in the response message.
         '''
         content_length = int(self.headers['Content-Length'])
-        file_content = self.rfile.read(content_length)
-        
-        header = re.findall(r'name="(.+)"', self.headers['Content-Disposition'])
-        filename, extension = header[0].split('.')
-        
-        uuid = uuid4()
 
-        with open(path.join(FILEPATH, f'{uuid}.{extension}'), 'wb') as file:
-            file.write(file_content)
-        
-        try:
-            with sqlite3.connect(DATABASE) as conn:
-                query = '''INSERT INTO filepaths VALUES (
-                                :uuid,
-                                :filename,
-                                :extension,
-                                :upload_date
-                        );'''
-                conn.execute(query, {'uuid': str(uuid), 
-                                    'filename': filename,
-                                    'extension': extension,
-                                    'upload_date': datetime.now()})
-            conn.close()
-
-            self.send_response(code=201, message=f'File saved with id {uuid}')
+        if content_length == 0:
+            self.send_response(code=400, message='No file provided')
             self.end_headers()
 
-        except sqlite3.DatabaseError as e:
-            self.send_response(code=500, message='Database error')
-            self.end_headers()
-            print('Database error :', e)
+        else:
+            file_content = self.rfile.read(content_length)
+            header = re.findall(r'name="(.+)"', self.headers['Content-Disposition'])
+            filename, extension = header[0].split('.')
+            
+            uuid = uuid4()
+
+            with open(path.join(FILEPATH, f'{uuid}.{extension}'), 'wb') as file:
+                file.write(file_content)
+            
+            try:
+                with sqlite3.connect(DATABASE) as conn:
+                    query = '''INSERT INTO filepaths VALUES (
+                                    :uuid,
+                                    :filename,
+                                    :extension,
+                                    :upload_date
+                            );'''
+                    conn.execute(query, {'uuid': str(uuid), 
+                                        'filename': filename,
+                                        'extension': extension,
+                                        'upload_date': datetime.now()})
+                conn.close()
+
+                self.send_response(code=201, message=f'File saved with id {uuid}')
+                self.end_headers()
+
+            except sqlite3.DatabaseError as e:
+                self.send_response(code=500, message='Database error')
+                self.end_headers()
+                print('Database error :', e)
 
 
 if __name__ == "__main__":
