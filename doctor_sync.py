@@ -55,7 +55,7 @@ class HttpHandler(BaseHTTPRequestHandler):
                     db_response = cursor.fetchone()
 
             except sqlite3.DatabaseError as e:
-                self.send_response(code=500, message=f'Database error')
+                self.send_response(code=500, message='Database error')
                 self.end_headers()
                 print('Database error :', e)
 
@@ -104,7 +104,7 @@ class HttpHandler(BaseHTTPRequestHandler):
         
         uuid = uuid4()
 
-        with open(path.join(FILEPATH, f"{uuid}.{extension}"), 'wb') as file:
+        with open(path.join(FILEPATH, f'{uuid}.{extension}'), 'wb') as file:
             file.write(file_content)
         
         try:
@@ -125,7 +125,7 @@ class HttpHandler(BaseHTTPRequestHandler):
             self.end_headers()
 
         except sqlite3.DatabaseError as e:
-            self.send_response(code=500, message=f'Database error')
+            self.send_response(code=500, message='Database error')
             self.end_headers()
             print('Database error :', e)
 
