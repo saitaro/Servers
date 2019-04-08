@@ -116,11 +116,10 @@ class HttpHandler(BaseHTTPRequestHandler):
             self.end_headers()
             return
 
-        file_content = self.rfile.read(content_length)
-        header = re.findall(r'name="(.+)\.(\S+)"', 
-                            self.headers['Content-Disposition'])
-        filename, extension = header[0]
+        filename, extension = re.findall(r'name="(.+)\.(\S+)"', 
+                                         self.headers['Content-Disposition'])[0]
         
+        file_content = self.rfile.read(content_length)
         uuid = uuid4()
 
         with open(path.join(FILEPATH, f'{uuid}.{extension}'), 'wb') as file:
