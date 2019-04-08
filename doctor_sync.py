@@ -67,10 +67,11 @@ class HttpHandler(BaseHTTPRequestHandler):
             self.send_response(code=500, message='Database error')
             self.end_headers()
             print('Database error :', e)
+            return
 
         if db_response:
             filepath, filename, extension, upload_date = db_response
-            print(filepath)
+            
             if 'download' in params:
                 try:
                     with open(filepath, 'rb') as file:
