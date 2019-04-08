@@ -2,7 +2,7 @@ import socketserver
 import sqlite3
 import re
 from datetime import datetime
-from os import path, getcwd, mkdir
+from os import getcwd, path, mkdir
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlsplit, parse_qsl
 from contextlib import closing
@@ -12,7 +12,7 @@ from uuid import uuid4
 ADDRESS, PORT = '127.0.0.1', 5050
 
 DATABASE = 'db.sqlite'
-FILEDIR = path.join(getcwd(), 'Uploads')
+FILEDIR = 'Uploads'
 
     
 class HttpHandler(BaseHTTPRequestHandler):
@@ -34,8 +34,9 @@ class HttpHandler(BaseHTTPRequestHandler):
                                 );''')
             conn.close()
             print(f'Database {DATABASE} created')
-        super().__init__(*args, **kwargs)
 
+        super().__init__(*args, **kwargs)
+            
     def do_GET(self):
         '''
         Check if a record for the given id exists in the DATABASE and
@@ -134,8 +135,10 @@ class HttpHandler(BaseHTTPRequestHandler):
                                :extension,
                                :upload_date
                            );'''
+                filepath = path.join(getcwd(), FILEDIR, f'{uuid}.{extension}')
+
                 conn.execute(query, {'uuid': str(uuid), 
-                                     'filepath': path.join(FILEDIR, f'{uuid}.{extension}'),
+                                     'filepath': filepath,
                                      'filename': filename,
                                      'extension': extension,
                                      'upload_date': datetime.now()})
