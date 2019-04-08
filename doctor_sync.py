@@ -17,7 +17,7 @@ FILEPATH = path.join(getcwd(), 'Uploads')
     
 class HttpHandler(BaseHTTPRequestHandler):
     "A tiny request handler for uploading and downloading files."
-    
+
     def __init__(self, *args, **kwargs):
         if not path.isdir(FILEPATH):
             mkdir(FILEPATH)
@@ -90,7 +90,7 @@ class HttpHandler(BaseHTTPRequestHandler):
             else:
                 self.send_response(
                     code=200,
-                    message=f'File {filename}.{extension} uploaded at {upload_date}')
+                    message=f'{filename}.{extension} uploaded at {upload_date}')
                 self.end_headers()
         else:
             self.send_response(code=404, 
