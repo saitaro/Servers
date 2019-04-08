@@ -85,16 +85,18 @@ class HttpHandler(BaseHTTPRequestHandler):
                 except FileNotFoundError:
                     self.send_response(
                         code=404,
-                        message=f'File with id {file_id} was deleted.')
+                        message=f'File with id {file_id} was deleted.'
+                    )
                     self.end_headers()
             else:
                 self.send_response(
                     code=200,
-                    message=f'{filename}.{extension} uploaded at {upload_date}')
+                    message=f'{filename}.{extension} uploaded at {upload_date}'
+                )
                 self.end_headers()
         else:
             self.send_response(code=404, 
-                                message=f'No files found with id {file_id}')
+                               message=f'No files found with id {file_id}')
             self.end_headers()
     
     def do_POST(self):
@@ -115,7 +117,8 @@ class HttpHandler(BaseHTTPRequestHandler):
             return
 
         file_content = self.rfile.read(content_length)
-        header = re.findall(r'name="(.+)\.(\S+)"', self.headers['Content-Disposition'])
+        header = re.findall(r'name="(.+)\.(\S+)"', 
+                            self.headers['Content-Disposition'])
         filename, extension = header[0]
         
         uuid = uuid4()
