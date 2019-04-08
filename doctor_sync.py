@@ -71,7 +71,7 @@ class HttpHandler(BaseHTTPRequestHandler):
 
         if db_response:
             filepath, filename, extension, upload_date = db_response
-            
+
             if 'download' in params:
                 try:
                     with open(filepath, 'rb') as file:
@@ -123,8 +123,9 @@ class HttpHandler(BaseHTTPRequestHandler):
         
         file_content = self.rfile.read(content_length)
         uuid = uuid4()
+        filepath = path.join(getcwd(), FILEDIR, f'{uuid}.{extension}')
 
-        with open(path.join(FILEDIR, f'{uuid}.{extension}'), 'wb') as file:
+        with open(filepath, 'wb') as file:
             file.write(file_content)
         
         try:
@@ -136,8 +137,6 @@ class HttpHandler(BaseHTTPRequestHandler):
                                :extension,
                                :upload_date
                            );'''
-                filepath = path.join(getcwd(), FILEDIR, f'{uuid}.{extension}')
-
                 conn.execute(query, {'uuid': str(uuid), 
                                      'filepath': filepath,
                                      'filename': filename,
