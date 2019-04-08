@@ -12,21 +12,22 @@ from uuid import uuid4
 ADDRESS, PORT = '127.0.0.1', 5050
 
 DATABASE = 'db.sqlite'
-FILEPATH = path.join(getcwd(), 'Uploads')
+FILEDIR = path.join(getcwd(), 'Uploads')
 
     
 class HttpHandler(BaseHTTPRequestHandler):
     "A tiny request handler for uploading and downloading files."
 
     def __init__(self, *args, **kwargs):
-        if not path.isdir(FILEPATH):
-            mkdir(FILEPATH)
+        if not path.isdir(FILEDIR):
+            mkdir(FILEDIR)
 
         if not path.isfile(DATABASE):
             conn = sqlite3.connect(DATABASE)
             with conn:
                 conn.execute('''CREATE TABLE filepaths (
                                     uuid CHARACTER(36) PRIMARY KEY,
+                                    filepath TEXT NOT NULL,
                                     filename TEXT NOT NULL,
                                     extension TEXT,
                                     upload_date TEXT
@@ -54,8 +55,8 @@ class HttpHandler(BaseHTTPRequestHandler):
         try:
             with closing(sqlite3.connect(DATABASE)) as conn:
                 cursor = conn.cursor()
-                query = f'''SELECT filename, extension, upload_date
-                            FROM filepaths 
+                query = f'''SELECT filepath, filename, extension, upload_date
+                            FROM filepaths
                             WHERE uuid=:id;
                         '''
                 cursor.execute(query, {'id': file_id})
@@ -67,11 +68,10 @@ class HttpHandler(BaseHTTPRequestHandler):
             print('Database error :', e)
 
         if db_response:
-            filename, extension, upload_date = db_response
-        
+            filepath, filename, extension, upload_date = db_response
+            print(filepath)
             if 'download' in params:
                 try:
-                    filepath = path.join(FILEPATH, f'{file_id}.{extension}')
                     with open(filepath, 'rb') as file:
                         self.send_response(code=200)
                         self.send_header(
@@ -122,18 +122,20 @@ class HttpHandler(BaseHTTPRequestHandler):
         file_content = self.rfile.read(content_length)
         uuid = uuid4()
 
-        with open(path.join(FILEPATH, f'{uuid}.{extension}'), 'wb') as file:
+        with open(path.join(FILEDIR, f'{uuid}.{extension}'), 'wb') as file:
             file.write(file_content)
         
         try:
             with sqlite3.connect(DATABASE) as conn:
                 query = '''INSERT INTO filepaths VALUES (
                                :uuid,
+                               :filepath,
                                :filename,
                                :extension,
                                :upload_date
                            );'''
                 conn.execute(query, {'uuid': str(uuid), 
+                                     'filepath': path.join(FILEDIR, f'{uuid}.{extension}'),
                                      'filename': filename,
                                      'extension': extension,
                                      'upload_date': datetime.now()})
