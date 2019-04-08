@@ -14,24 +14,26 @@ ADDRESS, PORT = '127.0.0.1', 5050
 DATABASE = 'db.sqlite'
 FILEPATH = path.join(getcwd(), 'Uploads')
 
-if not path.isdir(FILEPATH):
-    mkdir(FILEPATH)
-
-if not path.isfile(DATABASE):
-    conn = sqlite3.connect(DATABASE)
-    with conn:
-        conn.execute('''CREATE TABLE filepaths (
-                            uuid CHARACTER(36) PRIMARY KEY,
-                            filename TEXT NOT NULL,
-                            extension TEXT,
-                            upload_date TEXT
-                        );''')
-    conn.close()
-    print(f'Database {DATABASE} created')
     
-
 class HttpHandler(BaseHTTPRequestHandler):
     "A tiny request handler for uploading and downloading files."
+    
+    def __init__(self, *args, **kwargs):
+        if not path.isdir(FILEPATH):
+            mkdir(FILEPATH)
+
+        if not path.isfile(DATABASE):
+            conn = sqlite3.connect(DATABASE)
+            with conn:
+                conn.execute('''CREATE TABLE filepaths (
+                                    uuid CHARACTER(36) PRIMARY KEY,
+                                    filename TEXT NOT NULL,
+                                    extension TEXT,
+                                    upload_date TEXT
+                                );''')
+            conn.close()
+            print(f'Database {DATABASE} created')
+        super().__init__(*args, **kwargs)
 
     def do_GET(self):
         '''
