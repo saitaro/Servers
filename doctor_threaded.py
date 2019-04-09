@@ -1,6 +1,7 @@
 import socketserver
 import sqlite3
 import re
+from threading import Thread
 from datetime import datetime
 from os import getcwd, path, mkdir
 from http.server import BaseHTTPRequestHandler
@@ -19,6 +20,13 @@ class HttpHandler(BaseHTTPRequestHandler):
     "A tiny request handler for uploading and downloading files."
 
     def __init__(self, *args, **kwargs):
+        prep_worker = Thread(target=self.prepare)
+        prep_worker.start()
+        prep_worker.join()
+
+        super().__init__(*args, **kwargs)
+
+    def prepare(self):
         if not path.isdir(FILEDIR):
             mkdir(FILEDIR)
 
@@ -34,11 +42,8 @@ class HttpHandler(BaseHTTPRequestHandler):
                                 );''')
             conn.close()
             print(f'Database {DATABASE} created')
-
-        super().__init__(*args, **kwargs)
             
     def do_GET(self):
-        print('GET accepted')
         '''
         Check if a record for the given id exists in the DATABASE and
         send the respective response to user; if 'download' parameter 
@@ -52,8 +57,14 @@ class HttpHandler(BaseHTTPRequestHandler):
             self.end_headers()
             return
 
-        file_id = params['id']
+        download = 'download' in params
 
+        response_worker = Thread(target=self.data_response, 
+                                 args=(params['id'], download))
+        response_worker.start()
+        response_worker.join()
+
+    def data_response(self, file_id, download):
         try:
             with closing(sqlite3.connect(DATABASE)) as conn:
                 cursor = conn.cursor()
@@ -73,7 +84,7 @@ class HttpHandler(BaseHTTPRequestHandler):
         if db_response:
             filepath, filename, extension, upload_date = db_response
 
-            if 'download' in params:
+            if download:
                 try:
                     with open(filepath, 'rb') as file:
                         self.send_response(code=200)
@@ -103,7 +114,6 @@ class HttpHandler(BaseHTTPRequestHandler):
             self.end_headers()
     
     def do_POST(self):
-        print('POST accepted')
         '''
         Upload a file to FILEPATH and create the record for that
         in the DATABASE, then send it's id in the response message.
@@ -120,43 +130,53 @@ class HttpHandler(BaseHTTPRequestHandler):
             self.end_headers()
             return
 
-        filename, extension = re.findall(r'name="(.+)\.(\S+)"', 
-                                         self.headers['Content-Disposition'])[0]
-        
-        file_content = self.rfile.read(content_length)
+        file_header = self.headers['Content-Disposition']
+        filename, extension = re.findall(r'name="(.+)\.(\S+)"', file_header)[0]
         uuid = uuid4()
         filepath = path.join(getcwd(), FILEDIR, f'{uuid}.{extension}')
 
+        file_worker = Thread(target=self.write_file, 
+                             args=(filepath, content_length),
+                             daemon=True)
+
+        db_worker = Thread(target=self.write_to_db, 
+                           args=(uuid, filepath, filename, extension),
+                           daemon=True)
+
+        file_worker.start(), db_worker.start()
+
+        db_worker.join()
+        self.end_headers()
+
+    def write_file(self, filepath, content_length):
+        content = self.rfile.read(content_length)
         with open(filepath, 'wb') as file:
-            file.write(file_content)
-        
+            file.write(content)
+
+    def write_to_db(self, uuid, filepath, filename, extension):       
         try:
             with sqlite3.connect(DATABASE) as conn:
                 query = '''INSERT INTO filepaths VALUES (
-                               :uuid,
-                               :filepath,
-                               :filename,
-                               :extension,
-                               :upload_date
-                           );'''
+                            :uuid,
+                            :filepath,
+                            :filename,
+                            :extension,
+                            :upload_date
+                        );'''
                 conn.execute(query, {'uuid': str(uuid), 
-                                     'filepath': filepath,
-                                     'filename': filename,
-                                     'extension': extension,
-                                     'upload_date': datetime.now()})
+                                    'filepath': filepath,
+                                    'filename': filename,
+                                    'extension': extension,
+                                    'upload_date': datetime.now()})
             conn.close()
-
             self.send_response(code=201, message=f'File saved with id {uuid}')
-            self.end_headers()
 
         except sqlite3.DatabaseError as e:
             self.send_response(code=500, message='Database error')
-            self.end_headers()
             print('Database error :', e)
 
 
 if __name__ == "__main__":
     with socketserver.TCPServer((ADDRESS, PORT), HttpHandler) as httpd:
         print('Serving at port', PORT)
-        print('Operating...')
         httpd.serve_forever()
