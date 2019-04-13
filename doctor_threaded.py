@@ -3,7 +3,7 @@ from threading import Thread
 import sqlite3
 import re
 from datetime import datetime
-from os import getcwd, path, makedirs, mkdir
+from os import getcwd, path, makedirs
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlsplit, parse_qsl
 from contextlib import closing
