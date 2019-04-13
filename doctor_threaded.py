@@ -12,6 +12,7 @@ from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlsplit, parse_qsl
 from contextlib import closing
 from uuid import uuid4
+from typing import Union
 
 
 ADDRESS, PORT = '127.0.0.1', 5050
@@ -23,7 +24,7 @@ FILEDIR = 'Uploads'
 class HttpHandler(BaseHTTPRequestHandler):
     '''A tiny request handler for uploading and downloading files.'''
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self: '__main__.HttpHandler', *args, **kwargs) -> None:
         '''
         The handler class constructor. Before initiating checks if
         the DATABASE file and the FILEDIR directory/folder exist.
@@ -46,7 +47,8 @@ class HttpHandler(BaseHTTPRequestHandler):
 
         super().__init__(*args, **kwargs)
 
-    def read_from_db(self, file_id):
+    def read_from_db(self: '__main__.HttpHandler',
+                     file_id: str) -> Union[tuple, None]:
         '''Fetch the file record from the database.'''
         try:
             conn = sqlite3.connect(DATABASE)
@@ -64,7 +66,11 @@ class HttpHandler(BaseHTTPRequestHandler):
             self.end_headers()
             print('Database error :', error)
 
-    def send_file(self, file_id, filepath, filename, extension):
+    def send_file(self: '__main__.HttpHandler',
+                  file_id: str,
+                  filepath: str,
+                  filename: str,
+                  extension: str) -> None:
         '''Send the requested file to user.'''
         try:
             with open(filepath, 'rb') as file:
@@ -84,7 +90,7 @@ class HttpHandler(BaseHTTPRequestHandler):
             )
             self.end_headers()
 
-    def do_GET(self): # pylint: disable=C0103
+    def do_GET(self: '__main__.HttpHandler') -> None: # pylint: disable=C0103
         '''
         Check if a record for the given id exists in the DATABASE and
         send the respective response to user; if 'download' parameter
@@ -119,7 +125,7 @@ class HttpHandler(BaseHTTPRequestHandler):
         else:
             self.send_file(file_id, filepath, filename, extension)
 
-    def do_POST(self): # pylint: disable=C0103
+    def do_POST(self: '__main__.HttpHandler') -> None: # pylint: disable=C0103
         '''
         Upload a file to FILEPATH and create the record for that
         in the DATABASE, then send it's id in the response message.
