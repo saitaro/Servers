@@ -102,7 +102,6 @@ class HttpHandler(BaseHTTPRequestHandler):
 
         DOWNLOAD
         http://<ADDRESS>:<PORT>/?id=<file_id>&download=1
-
         '''
         get_query = urlsplit(self.path).query
         params = dict(parse_qsl(get_query))
@@ -144,7 +143,6 @@ class HttpHandler(BaseHTTPRequestHandler):
         Content-Length must be provided in the headers;
         If Content-Disposition is absent, the file will be saved as
         "filename.not_provided"
-
         '''
         content_length = int(self.headers.get('Content-Length', 0))
 
