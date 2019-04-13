@@ -26,9 +26,9 @@ class HttpHandler(BaseHTTPRequestHandler):
 
     def __init__(self: '__main__.HttpHandler', *args, **kwargs) -> None:
         '''
-        The handler class constructor. Before initiating checks if
-        the DATABASE file and the FILEDIR directory/folder exist.
-        Otherwise creates them.
+        The handler class constructor. Before initialization checks if
+        the DATABASE file and the FILEDIR directory/folder both exist,
+        otherwise creates them.
         '''
         makedirs(FILEDIR, exist_ok=True)
 
