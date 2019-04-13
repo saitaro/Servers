@@ -15,7 +15,7 @@ from uuid import uuid4
 from typing import Union
 
 
-ADDRESS, PORT = '127.0.0.1', 5050
+ADDRESS, PORT = 'localhost', 5050
 
 DATABASE = 'db.sqlite'
 FILEDIR = 'Uploads'
@@ -95,6 +95,14 @@ class HttpHandler(BaseHTTPRequestHandler):
         Check if a record for the given id exists in the DATABASE and
         send the respective response to user; if 'download' parameter
         provided, download the existing file to user from FILEPATH.
+        Usage is as follows:
+
+        CHECK
+        http://<ADDRESS>:<PORT>/?id=<file_id>
+
+        DOWNLOAD
+        http://<ADDRESS>:<PORT>/?id=<file_id>&download=1
+
         '''
         get_query = urlsplit(self.path).query
         params = dict(parse_qsl(get_query))
@@ -129,6 +137,12 @@ class HttpHandler(BaseHTTPRequestHandler):
         '''
         Upload a file to FILEPATH and create the record for that
         in the DATABASE, then send it's id in the response message.
+        Usage is as follows:
+
+        UPLOAD
+        POST request containing the file body to http://<ADDRESS>:<PORT>/
+        Content-Length and Content-Disposition must be provided in the headers.
+        
         '''
         content_length = int(self.headers.get('Content-Length', 0))
 
