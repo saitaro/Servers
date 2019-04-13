@@ -141,8 +141,10 @@ class HttpHandler(BaseHTTPRequestHandler):
 
         UPLOAD
         POST request containing the file body to http://<ADDRESS>:<PORT>/
-        Content-Length and Content-Disposition must be provided in the headers.
-        
+        Content-Length must be provided in the headers;
+        If Content-Disposition is absent, the file will be saved as
+        "filename.not_provided"
+
         '''
         content_length = int(self.headers.get('Content-Length', 0))
 
