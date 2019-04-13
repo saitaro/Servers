@@ -1,13 +1,13 @@
 from socketserver import ThreadingTCPServer
-from threading import Thread, current_thread
+from threading import Thread
 import sqlite3
+import re
 from datetime import datetime
-from os import getcwd, path, mkdir
+from os import getcwd, path, makedirs, mkdir
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlsplit, parse_qsl
 from contextlib import closing
 from uuid import uuid4
-import re
 
 
 ADDRESS, PORT = '127.0.0.1', 5050
@@ -15,13 +15,12 @@ ADDRESS, PORT = '127.0.0.1', 5050
 DATABASE = 'db.sqlite'
 FILEDIR = 'Uploads'
 
-    
+
 class HttpHandler(BaseHTTPRequestHandler):
     "A tiny request handler for uploading and downloading files."
 
     def __init__(self, *args, **kwargs):
-        if not path.isdir(FILEDIR):
-            mkdir(FILEDIR)
+        makedirs(FILEDIR, exist_ok=True)
 
         if not path.isfile(DATABASE):
             conn = sqlite3.connect(DATABASE)
@@ -39,7 +38,6 @@ class HttpHandler(BaseHTTPRequestHandler):
         super().__init__(*args, **kwargs)
             
     def do_GET(self):
-        # print(2, current_thread().name)
         '''
         Check if a record for the given id exists in the DATABASE and
         send the respective response to user; if 'download' parameter 
@@ -71,41 +69,41 @@ class HttpHandler(BaseHTTPRequestHandler):
             print('Database error :', e)
             return
 
-        if db_response:
-            filepath, filename, extension, upload_date = db_response
+        if not db_response:
+            self.send_response(code=204,
+                               message=f'No files found with id {file_id}')
+            self.end_headers()
+            return
 
-            if 'download' in params:
-                try:
-                    with open(filepath, 'rb') as file:
-                        self.send_response(code=200)
-                        self.send_header(
-                            'Content-Disposition',
-                            f'attachment; filename="{filename}.{extension}"'
-                        )
-                        self.end_headers()
-                        data = file.read()
-                        self.wfile.write(data)
+        filepath, filename, extension, upload_date = db_response
 
-                except FileNotFoundError:
-                    self.send_response(
-                        code=404,
-                        message=f'File with id {file_id} was deleted.'
-                    )
-                    self.end_headers()
-            else:
-                self.send_response(
-                    code=200,
-                    message=f'{filename}.{extension} uploaded at {upload_date}'
+        if not 'download' in params:
+            self.send_response(
+                code=200,
+                message=f'{filename}.{extension} was uploaded at {upload_date}'
+            )
+            self.end_headers()
+            return
+            
+        try:
+            with open(filepath, 'rb') as file:
+                self.send_response(code=200)
+                self.send_header(
+                    'Content-Disposition',
+                    f'attachment; filename="{filename}.{extension}"'
                 )
                 self.end_headers()
-                # print(3, current_thread().name)
-        else:
-            self.send_response(code=404, 
-                               message=f'No files found with id {file_id}')
+                data = file.read()
+                self.wfile.write(data)
+
+        except FileNotFoundError:
+            self.send_response(
+                code=410,
+                message=f'File with id {file_id} was deleted.'
+            )
             self.end_headers()
     
     def do_POST(self):
-        # print(4, current_thread().name)
         '''
         Upload a file to FILEPATH and create the record for that
         in the DATABASE, then send it's id in the response message.
@@ -113,7 +111,7 @@ class HttpHandler(BaseHTTPRequestHandler):
         content_length = int(self.headers.get('Content-Length', 0))
 
         if content_length == 0:
-            self.send_response(code=400, message='No file provided')
+            self.send_response(code=411, message='Length required')
             self.end_headers()
             return
 
@@ -145,7 +143,7 @@ class HttpHandler(BaseHTTPRequestHandler):
                                      'upload_date': datetime.now()})
             conn.close()
 
-            self.send_response(code=201, message=f'File saved with id {uuid}')
+            self.send_response(code=201, message=uuid)
             self.end_headers()
 
         except sqlite3.DatabaseError as e:
@@ -156,6 +154,6 @@ class HttpHandler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     with ThreadingTCPServer((ADDRESS, PORT), HttpHandler) as httpd:
-        print('Serving at port', PORT)
+        print('Serving on port', PORT)
         server_thread = Thread(httpd.serve_forever(), daemon=True)
         server_thread.start()

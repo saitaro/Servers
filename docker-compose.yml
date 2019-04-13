@@ -5,9 +5,9 @@ services:
     build:
       context: .
     ports:
-      - "8000:5050"
+      - "5050:5050"
     volumes:
       - .:/server
     command: >
-      sh -c "python doctor_sync.py"
+      sh -c "python doctor_threaded.py"
       # sh -c "python test_doctor.py"

@@ -8,5 +8,6 @@ WORKDIR /server
 COPY . /server
 
 RUN adduser -D user
-RUN chmod -R 777 .
+RUN chown -R user:user /server
+RUN chmod -R 755 /server
 USER user

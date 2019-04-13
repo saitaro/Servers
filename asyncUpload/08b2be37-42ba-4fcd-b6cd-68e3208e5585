@@ -1,0 +1,10 @@
+POST / HTTP/1.1
+Host: 127.0.0.1:5050
+User-Agent: python-requests/2.21.0
+Accept-Encoding: gzip, deflate
+Accept: */*
+Connection: keep-alive
+Content-Length: 1558437
+Content-Disposition: attachment; filename="012 Non-Repeating Character (Difficulty = __).mp4"
+Content-Type: multipart/form-data; boundary=a5a65f28b9d07a7ac56e362e8b06df65
+
