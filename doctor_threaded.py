@@ -2,6 +2,7 @@
 them with a unique id (UUID) and sends them back by their id.
 """
 
+import cgi
 import re
 import sqlite3
 from contextlib import closing
@@ -14,7 +15,7 @@ from typing import Union
 from urllib.parse import parse_qsl, urlsplit
 from uuid import uuid4
 
-ADDRESS, PORT = 'localhost', 5050
+ADDRESS, PORT = 'localhost', 8000
 
 DATABASE = 'db.sqlite'
 FILEDIR = 'Uploads'
@@ -61,8 +62,9 @@ class HttpHandler(BaseHTTPRequestHandler):
                 return cursor.fetchone()
 
         except sqlite3.DatabaseError as error:
-            self.send_response(code=500, message='Database error')
+            self.send_response(code=500)
             self.end_headers()
+            self.wfile.write(bytes('Database error', 'utf-8'))
             print('Database error :', error)
 
     def send_file(self: '__main__.HttpHandler',
@@ -83,11 +85,10 @@ class HttpHandler(BaseHTTPRequestHandler):
                 self.wfile.write(data)
 
         except FileNotFoundError:
-            self.send_response(
-                code=410,
-                message=f'File with id {file_id} was deleted.'
-            )
+            self.send_response(code=410)
             self.end_headers()
+            self.wfile.write(bytes(f'File with id {file_id} was deleted.'),
+                             'utf-8')
 
     def do_GET(self: '__main__.HttpHandler') -> None: # pylint: disable=C0103
         '''
@@ -102,10 +103,12 @@ class HttpHandler(BaseHTTPRequestHandler):
         DOWNLOAD
         http://<ADDRESS>:<PORT>/?id=<file_id>&download=1
         '''
+        print(111)
         get_query = urlsplit(self.path).query
         params = dict(parse_qsl(get_query))
 
         if 'id' not in params:
+            print(222)
             self.send_response_only(code=200)
             self.end_headers()
             return
@@ -115,19 +118,23 @@ class HttpHandler(BaseHTTPRequestHandler):
         db_response = self.read_from_db(file_id)
 
         if not db_response:
-            self.send_response(code=204,
-                               message=f'No files found with id {file_id}')
+            print(333)
+            self.send_response(code=204)
             self.end_headers()
+            self.wfile.write(bytes(f'No files found with id {file_id}'),
+                             'utf-8')
             return
 
         filepath, filename, extension, upload_date = db_response
-
+        print(444)
         if 'download' not in params:
-            self.send_response(
-                code=200,
-                message=f'{filename}.{extension} was uploaded at {upload_date}'
-            )
+            print('THIS')
+            self.send_response(code=200)
             self.end_headers()
+            self.wfile.write(
+                bytes(f'{filename}.{extension} was uploaded at {upload_date}',
+                      'utf-8')
+            )
         else:
             self.send_file(file_id, filepath, filename, extension)
 
@@ -146,18 +153,30 @@ class HttpHandler(BaseHTTPRequestHandler):
         content_length = int(self.headers.get('Content-Length', 0))
 
         if content_length == 0:
-            self.send_response(code=411, message='Length required')
+            self.send_response(code=411)
             self.end_headers()
             return
 
-        content_disposition = self.headers.get('Content-Disposition',
-                                               'name="filename.not_provided"')
-        filename, extension = re.findall(r'name="(.+)\.(\S+)"',
-                                         content_disposition)[0]
+        # content_disposition = self.headers.get('Content-Disposition',
+        #                                        'name="filename.not_provided"')
+        # filename, extension = re.findall(r'name="(.+)\.(\S+)"',
+        #                                  content_disposition)[0]
+        form = cgi.FieldStorage(
+            fp=self.rfile,
+            headers=self.headers,
+            environ={'REQUEST_METHOD': 'POST',
+                     'CONTENT_TYPE': self.headers['Content-Type']}
+        )
+        filename = form.list[0].filename
+        extension = 'wooloo'
+        print()
+        print('filename', filename)
+        print()
 
         file_content = self.rfile.read(content_length)
-        uuid = uuid4()
-        filepath = path.join(getcwd(), FILEDIR, f'{uuid}.{extension}')
+        uuid = str(uuid4())
+        # filepath = path.join(getcwd(), FILEDIR, f'{uuid}.{extension}')
+        filepath = path.join(getcwd(), FILEDIR, f'{filename}')
 
         with open(filepath, 'wb') as file:
             file.write(file_content)
@@ -171,19 +190,21 @@ class HttpHandler(BaseHTTPRequestHandler):
                                :extension,
                                :upload_date
                            );'''
-                conn.execute(query, {'uuid': str(uuid),
+                conn.execute(query, {'uuid': uuid,
                                      'filepath': filepath,
                                      'filename': filename,
                                      'extension': extension,
                                      'upload_date': datetime.now()})
             conn.close()
 
-            self.send_response(code=201, message=uuid)
+            self.send_response(code=201)
             self.end_headers()
+            self.wfile.write(bytes(uuid, 'utf-8'))
 
         except sqlite3.DatabaseError as error:
-            self.send_response(code=500, message='Database error')
+            self.send_response(code=500)
             self.end_headers()
+            self.wfile.write(bytes('Database error', 'utf-8'))
             print('Database error :', error)
 
 
