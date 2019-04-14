@@ -2,7 +2,7 @@
 them with a unique id (UUID) and sends them back by their id.
 """
 
-import re
+import cgi
 import sqlite3
 from contextlib import closing
 from datetime import datetime
@@ -150,14 +150,19 @@ class HttpHandler(BaseHTTPRequestHandler):
             self.end_headers()
             return
 
-        content_disposition = self.headers.get('Content-Disposition',
-                                               'name="filename.not_provided"')
-        filename, extension = re.findall(r'name="(.+)\.(\S+)"',
-                                         content_disposition)[0]
+        form = cgi.FieldStorage(
+            fp=self.rfile,
+            headers=self.headers,
+            environ={'REQUEST_METHOD': 'POST',
+                     'CONTENT_TYPE': self.headers['Content-Type'],
+                     })
+        filename = form.list[0].filename
+        # filename, extension = re.findall(r'name="(.+)\.(\S+)"',
+        #                                  content_disposition)[0]
 
         file_content = self.rfile.read(content_length)
         uuid = uuid4()
-        filepath = path.join(getcwd(), FILEDIR, f'{uuid}.{extension}')
+        filepath = path.join(getcwd(), FILEDIR, f'{filename}')
 
         with open(filepath, 'wb') as file:
             file.write(file_content)
