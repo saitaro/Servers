@@ -9,11 +9,13 @@ from contextlib import closing
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler
 from os import getcwd, makedirs, path
-from socketserver import ThreadingTCPServer
+from socketserver import ThreadingTCPServer, TCPServer
 from threading import Thread
 from typing import Union
 from urllib.parse import parse_qsl, urlsplit
 from uuid import uuid4
+
+import sys
 
 ADDRESS, PORT = 'localhost', 8000
 
@@ -146,41 +148,45 @@ class HttpHandler(BaseHTTPRequestHandler):
 
         UPLOAD
         POST request containing the file body to http://<ADDRESS>:<PORT>/
-        Content-Length must be provided in the headers;
-        If Content-Disposition is absent, the file will be saved as
-        "filename.not_provided"
-        '''
-        content_length = int(self.headers.get('Content-Length', 0))
 
-        if content_length == 0:
-            self.send_response(code=411)
-            self.end_headers()
-            return
+        Files are saved as <uuid>.<extension> to prevent name duplication.
+        '''
+        # content_length = int(self.headers.get('Content-Length', 0))
+
+        # if content_length == 0:
+        #     self.send_response(code=411)
+        #     self.end_headers()
+        #     return
 
         # content_disposition = self.headers.get('Content-Disposition',
         #                                        'name="filename.not_provided"')
-        # filename, extension = re.findall(r'name="(.+)\.(\S+)"',
-        #                                  content_disposition)[0]
+        uuid = str(uuid4())
+        print(1)
         form = cgi.FieldStorage(
             fp=self.rfile,
             headers=self.headers,
             environ={'REQUEST_METHOD': 'POST',
                      'CONTENT_TYPE': self.headers['Content-Type']}
         )
+        print(form.keys())
+        print(2)
+        content_length = form.length
+        print(content_length)
         filename = form.list[0].filename
-        extension = 'wooloo'
-        print()
-        print('filename', filename)
-        print()
-
-        file_content = self.rfile.read(content_length)
-        uuid = str(uuid4())
-        # filepath = path.join(getcwd(), FILEDIR, f'{uuid}.{extension}')
-        filepath = path.join(getcwd(), FILEDIR, f'{filename}')
-
+        extension = re.findall(r'.+\.(\S+)', filename)[0]
+        filepath = path.join(getcwd(), FILEDIR, f'{uuid}.{extension}')
+        print(filename, extension)
+        print(3)
+        # print(dir(form.fp))
+        # content = form.fp.raw()
+        # print(sys.getsizeof(content))
+        print(4)
+        # print('size', sys.getsizeof(file_content))
         with open(filepath, 'wb') as file:
-            file.write(file_content)
-
+            content = form.fp.read(content_length)
+            print(5)
+            file.write(content)
+            print(6)
         try:
             with sqlite3.connect(DATABASE) as conn:
                 query = '''INSERT INTO filepaths VALUES (
@@ -210,6 +216,8 @@ class HttpHandler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     with ThreadingTCPServer((ADDRESS, PORT), HttpHandler) as httpd:
+    # with TCPServer((ADDRESS, PORT), HttpHandler) as httpd:
         print('Serving on port', PORT)
+        # httpd.serve_forever()
         SERVER_THREAD = Thread(httpd.serve_forever(), daemon=True)
         SERVER_THREAD.start()
