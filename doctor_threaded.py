@@ -2,18 +2,17 @@
 them with a unique id (UUID) and sends them back by their id.
 """
 
+import re
+import sqlite3
+from contextlib import closing
+from datetime import datetime
+from http.server import BaseHTTPRequestHandler
+from os import getcwd, makedirs, path
 from socketserver import ThreadingTCPServer
 from threading import Thread
-import sqlite3
-import re
-from datetime import datetime
-from os import getcwd, path, makedirs
-from http.server import BaseHTTPRequestHandler
-from urllib.parse import urlsplit, parse_qsl
-from contextlib import closing
-from uuid import uuid4
 from typing import Union
-
+from urllib.parse import parse_qsl, urlsplit
+from uuid import uuid4
 
 ADDRESS, PORT = 'localhost', 5050
 
