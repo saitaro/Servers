@@ -9,15 +9,14 @@ from contextlib import closing
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler
 from os import getcwd, makedirs, path
-from socketserver import ThreadingTCPServer, TCPServer
+from socketserver import ThreadingTCPServer
 from threading import Thread
 from typing import Union
 from urllib.parse import parse_qsl, urlsplit
 from uuid import uuid4
 
-import sys
 
-ADDRESS, PORT = 'localhost', 8000
+ADDRESS, PORT = '0.0.0.0', 8000
 
 DATABASE = 'db.sqlite'
 FILEDIR = 'Uploads'
@@ -26,7 +25,7 @@ FILEDIR = 'Uploads'
 class HttpHandler(BaseHTTPRequestHandler):
     '''A tiny request handler for uploading and downloading files.'''
 
-    def __init__(self: '__main__.HttpHandler', *args, **kwargs) -> None:
+    def __init__(self, *args, **kwargs) -> None:
         '''
         The handler class constructor. Before initialization checks if
         the DATABASE file and the FILEDIR directory/folder both exist,
@@ -49,8 +48,7 @@ class HttpHandler(BaseHTTPRequestHandler):
 
         super().__init__(*args, **kwargs)
 
-    def read_from_db(self: '__main__.HttpHandler',
-                     file_id: str) -> Union[tuple, None]:
+    def read_from_db(self, file_id: str) -> Union[tuple, None]:
         '''Fetch the file record from the database.'''
         try:
             conn = sqlite3.connect(DATABASE)
@@ -69,7 +67,7 @@ class HttpHandler(BaseHTTPRequestHandler):
             self.wfile.write(bytes('Database error', 'utf-8'))
             print('Database error :', error)
 
-    def send_file(self: '__main__.HttpHandler',
+    def send_file(self,
                   file_id: str,
                   filepath: str,
                   filename: str,
@@ -89,10 +87,10 @@ class HttpHandler(BaseHTTPRequestHandler):
         except FileNotFoundError:
             self.send_response(code=410)
             self.end_headers()
-            self.wfile.write(bytes(f'File with id {file_id} was deleted.'),
-                             'utf-8')
+            self.wfile.write(bytes(f'File with id {file_id} was deleted.',
+                                   'utf-8'))
 
-    def do_GET(self: '__main__.HttpHandler') -> None: # pylint: disable=C0103
+    def do_GET(self) -> None:  # pylint: disable=C0103
         '''
         Check if a record for the given id exists in the DATABASE and
         send the respective response to user; if 'download' parameter
@@ -105,12 +103,10 @@ class HttpHandler(BaseHTTPRequestHandler):
         DOWNLOAD
         http://<ADDRESS>:<PORT>/?id=<file_id>&download=1
         '''
-        print(111)
         get_query = urlsplit(self.path).query
         params = dict(parse_qsl(get_query))
 
         if 'id' not in params:
-            print(222)
             self.send_response_only(code=200)
             self.end_headers()
             return
@@ -128,19 +124,16 @@ class HttpHandler(BaseHTTPRequestHandler):
             return
 
         filepath, filename, extension, upload_date = db_response
-        print(444)
+
         if 'download' not in params:
-            print('THIS')
             self.send_response(code=200)
             self.end_headers()
             self.wfile.write(
-                bytes(f'{filename}.{extension} was uploaded at {upload_date}',
-                      'utf-8')
-            )
+                bytes(f'{filename} was uploaded at {upload_date}', 'utf-8'))
         else:
             self.send_file(file_id, filepath, filename, extension)
 
-    def do_POST(self: '__main__.HttpHandler') -> None: # pylint: disable=C0103
+    def do_POST(self) -> None:  # pylint: disable=C0103
         '''
         Upload a file to FILEPATH and create the record for that
         in the DATABASE, then send it's id in the response message.
@@ -151,39 +144,19 @@ class HttpHandler(BaseHTTPRequestHandler):
 
         Files are saved as <uuid>.<extension> to prevent name duplication.
         '''
-        # content_length = int(self.headers.get('Content-Length', 0))
-
-        # if content_length == 0:
-        #     self.send_response(code=411)
-        #     self.end_headers()
-        #     return
-
-        # content_disposition = self.headers.get('Content-Disposition',
-        #                                        'name="filename.not_provided"')
         uuid = str(uuid4())
-        print(1)
         form = cgi.FieldStorage(
             fp=self.rfile,
             headers=self.headers,
             environ={'REQUEST_METHOD': 'POST',
                      'CONTENT_TYPE': self.headers['Content-Type']}
         )
-        print(form.keys())
-        print(2)
-        content_length = form.length
-        print(content_length)
         filename = form.list[0].filename
         extension = re.findall(r'.+\.(\S+)', filename)[0]
         filepath = path.join(getcwd(), FILEDIR, f'{uuid}.{extension}')
-        print(filename, extension)
-        print(3)
-        # print(dir(form.fp))
-        # content = form.fp.raw()
-        # print(sys.getsizeof(content))
-        print(4)
-        # print('size', sys.getsizeof(file_content))
+
         with open(filepath, 'wb') as file:
-            content = form.fp.read(content_length)
+            content = form.list[0].file.read()
             print(5)
             file.write(content)
             print(6)
@@ -216,8 +189,6 @@ class HttpHandler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     with ThreadingTCPServer((ADDRESS, PORT), HttpHandler) as httpd:
-    # with TCPServer((ADDRESS, PORT), HttpHandler) as httpd:
         print('Serving on port', PORT)
-        # httpd.serve_forever()
         SERVER_THREAD = Thread(httpd.serve_forever(), daemon=True)
         SERVER_THREAD.start()

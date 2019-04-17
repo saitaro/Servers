@@ -10,4 +10,5 @@ services:
       - .:/server
     command: >
       sh -c "python doctor_threaded.py"
+      # sh -c "python doctor_threaded_old.py"
       # sh -c "python test_doctor.py"
