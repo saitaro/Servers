@@ -116,7 +116,6 @@ class HttpHandler(BaseHTTPRequestHandler):
         db_response = self.read_from_db(file_id)
 
         if not db_response:
-            print(333)
             self.send_response(code=204)
             self.end_headers()
             self.wfile.write(bytes(f'No files found with id {file_id}'),
@@ -156,10 +155,8 @@ class HttpHandler(BaseHTTPRequestHandler):
         filepath = path.join(getcwd(), FILEDIR, f'{uuid}.{extension}')
 
         with open(filepath, 'wb') as file:
-            content = form.list[0].file.read()
-            print(5)
-            file.write(content)
-            print(6)
+            uploading_content = form.list[0].file.read()
+            file.write(uploading_content)
         try:
             with sqlite3.connect(DATABASE) as conn:
                 query = '''INSERT INTO filepaths VALUES (
