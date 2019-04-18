@@ -8,34 +8,34 @@ from os import path, getcwd, remove
 from time import sleep
 import requests
 import http.client
+import cgitb
+cgitb.enable()
 
+class GeneralTestCase(TestCase):
 
-# class CheckTestCase(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.PORT = 8080
+        cls.server_url = f'http://127.0.0.1:{cls.PORT}/'
+        cls.server = subprocess.Popen(f'python doctor_threaded.py {cls.PORT}')
 
-#     @classmethod
-#     def setUpClass(cls):
-#         cls.PORT = 8080
-#         cls.server_url = f'http://127.0.0.1:{cls.PORT}/'
-#         cls.server = subprocess.Popen(f'python doctor_threaded.py {cls.PORT}')
+    @classmethod
+    def tearDownClass(cls):
+        cls.server.terminate()
+        # sleep(1)
 
-#     @classmethod
-#     def tearDownClass(cls):
-#         cls.server.terminate()
-#         # sleep(1)
+    def test_server_responding(self):
+        response = urlopen(self.server_url)
+        self.assertEqual(response.status, 200)
 
-#     def test_server_responding(self):
-#         response = urlopen(self.server_url)
-#         self.assertEqual(response.status, 200)
+    def test_wrong_file_id_response(self):
+        wrong_id = 'wrong-id-0e18-4f06-8349-7cbf3155890d'
+        params = urlencode({'id': wrong_id})
+        bad_response = urlopen(self.server_url + '?' + params)
 
-#     def test_wrong_file_id_response(self):
-#         wrong_id = 'wrong-id-0e18-4f06-8349-7cbf3155890d'
-#         params = urlencode({'id': wrong_id})
-#         bad_response = urlopen(self.server_url + '?' + params)
-
-#         self.assertEqual(bad_response.status, 204)
-#         self.assertEqual(bad_response.reason,
-#                          f'No database record for id {wrong_id}')
-
+        self.assertEqual(bad_response.status, 204)
+        self.assertEqual(bad_response.reason,
+                         f'No database record for id {wrong_id}')
 
 class UploadTestCase(TestCase):
 
@@ -50,30 +50,42 @@ class UploadTestCase(TestCase):
         self.server.terminate()
 
     def test_upload_file(self):
-        # sample_file = path.join(getcwd(), 'sample_file.txt')
-        # with open(sample_file, 'w') as file:
-        #     file.write('Hello, world!')
+#         # sample_file = path.join(getcwd(), 'sample_file.txt')
+#         # with open(sample_file, 'w') as file:
+#         #     file.write('Hello, world!')
 
-        with open('012 Non-Repeating Character (Difficulty = __).mp4', 'rb') as file:
-            files = {'file': file}
-            headers = {
-                'Content-Type': 'text/plain',
-                'Content-Disposition': 'attachment; filename="sample_file.txt"'
-            }
-            print(requests.post(self.server_url,
-                                # files=files,
-                                headers=headers).status_code)
-        # request  = Request(self.server_url, 
-        #                    data=open('012 Non-Repeating Character (Difficulty = __).mp4', 'rb'), 
-        #                    headers={'Content-Type': 'video/mpeg'})
-        # print(requests.get(self.server_url).status_code)
-        # response = urlopen(request).read().decode()
-        # sample_file.close()
-        # remove('sample_file.txt')
+#         with open('012 Non-Repeating Character (Difficulty = __).mp4', 'rb') as file:
+#             files = {'file': file}
+#             headers = {
+#                 'Content-Type': 'text/plain',
+#                 'Content-Disposition': 'attachment; filename="sample_file.txt"'
+#             }
+#             print(requests.post(self.server_url,
+#                                 # files=files,
+#                                 headers=headers).status_code)
+#         # request  = Request(self.server_url, 
+#         #                    data=open('012 Non-Repeating Character (Difficulty = __).mp4', 'rb'), 
+#         #                    headers={'Content-Type': 'video/mpeg'})
+#         # print(requests.get(self.server_url).status_code)
+#         # response = urlopen(request).read().decode()
+#         # sample_file.close()
+#         # remove('sample_file.txt')
+        DATA = b'some data'
+        req = Request(url=self.server_url, data=DATA)
+        with urlopen(req) as f:
+            pass
+        print(f.status)
+        print(f.reason)
 
 
+    def test_check_uploaded_file(self):
+        right_id = '5ec06cc1-efbb-44cf-bda0-3b0b0999ac84'
+        params = urlencode({'id': right_id})
+        response = urlopen(self.server_url + '?' + params)
 
-    # def test_check_uploaded_file(self):
+        self.assertEqual(response.status, 200)
+        self.assertEqual(response.read().decode(),
+                         'git.pdf was uploaded at 2019-04-18 19:03:19.083186')
         
 # class DownloadTestCase(TestCase):
     

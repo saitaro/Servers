@@ -172,11 +172,15 @@ class HttpHandler(BaseHTTPRequestHandler):
                                :extension,
                                :upload_date
                            );'''
-                conn.execute(query, {'uuid': uuid,
-                                     'filepath': filepath,
-                                     'filename': filename,
-                                     'extension': extension,
-                                     'upload_date': datetime.now()})
+                conn.execute(
+                    query, {
+                        'uuid': uuid,
+                        'filepath': filepath,
+                        'filename': filename,
+                        'extension': extension,
+                        'upload_date': f'{datetime.now():%d.%m.%Y %H:%M:%S}'
+                    }
+                )
             conn.close()
 
             self.send_response(code=201)
