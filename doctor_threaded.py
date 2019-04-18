@@ -5,6 +5,7 @@ them with a unique id (UUID) and sends them back by their id.
 import cgi
 import re
 import sqlite3
+import sys
 from contextlib import closing
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler
@@ -16,7 +17,7 @@ from urllib.parse import parse_qsl, urlsplit
 from uuid import uuid4
 
 
-ADDRESS, PORT = '0.0.0.0', 8000
+ADDRESS, PORT = '127.0.0.1', 8000
 
 DATABASE = 'db.sqlite'
 FILEDIR = 'Uploads'
@@ -62,9 +63,8 @@ class HttpHandler(BaseHTTPRequestHandler):
                 return cursor.fetchone()
 
         except sqlite3.DatabaseError as error:
-            self.send_response(code=500)
+            self.send_response(code=500, message='Database error')
             self.end_headers()
-            self.wfile.write(bytes('Database error', 'utf-8'))
             print('Database error :', error)
 
     def send_file(self,
@@ -81,14 +81,13 @@ class HttpHandler(BaseHTTPRequestHandler):
                     f'attachment; filename="{filename}.{extension}"'
                 )
                 self.end_headers()
-                data = file.read()
-                self.wfile.write(data)
+                downloading_content = file.read()
+                self.wfile.write(downloading_content)
 
         except FileNotFoundError:
-            self.send_response(code=410)
+            self.send_response(code=410,
+                               message=f'File with id {file_id} was deleted')
             self.end_headers()
-            self.wfile.write(bytes(f'File with id {file_id} was deleted.',
-                                   'utf-8'))
 
     def do_GET(self) -> None:  # pylint: disable=C0103
         '''
@@ -116,10 +115,9 @@ class HttpHandler(BaseHTTPRequestHandler):
         db_response = self.read_from_db(file_id)
 
         if not db_response:
-            self.send_response(code=204)
+            self.send_response(code=204,
+                               message=f'No database record for id {file_id}')
             self.end_headers()
-            self.wfile.write(bytes(f'No files found with id {file_id}'),
-                             'utf-8')
             return
 
         filepath, filename, extension, upload_date = db_response
@@ -150,13 +148,21 @@ class HttpHandler(BaseHTTPRequestHandler):
             environ={'REQUEST_METHOD': 'POST',
                      'CONTENT_TYPE': self.headers['Content-Type']}
         )
-        filename = form.list[0].filename
+        code = 400 if form.list else 333
+        try:
+            filename = form.list[0].filename
+        except TypeError:
+            filename = 'filename.not_provided'
         extension = re.findall(r'.+\.(\S+)', filename)[0]
         filepath = path.join(getcwd(), FILEDIR, f'{uuid}.{extension}')
 
         with open(filepath, 'wb') as file:
-            uploading_content = form.list[0].file.read()
-            file.write(uploading_content)
+            try:
+                uploading_content = form.list[0].file.read()
+                file.write(uploading_content)
+            except TypeError:
+                self.send_response(code=code)
+                self.end_headers()
         try:
             with sqlite3.connect(DATABASE) as conn:
                 query = '''INSERT INTO filepaths VALUES (
@@ -178,13 +184,16 @@ class HttpHandler(BaseHTTPRequestHandler):
             self.wfile.write(bytes(uuid, 'utf-8'))
 
         except sqlite3.DatabaseError as error:
-            self.send_response(code=500)
+            self.send_response(code=500, message='Database error')
             self.end_headers()
-            self.wfile.write(bytes('Database error', 'utf-8'))
             print('Database error :', error)
 
 
 if __name__ == "__main__":
+    try:
+        PORT = int(sys.argv[1])
+    except IndexError:
+        pass
     with ThreadingTCPServer((ADDRESS, PORT), HttpHandler) as httpd:
         print('Serving on port', PORT)
         SERVER_THREAD = Thread(httpd.serve_forever(), daemon=True)
