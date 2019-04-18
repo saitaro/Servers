@@ -43,6 +43,7 @@ class UploadTestCase(TestCase):
         self.PORT = 8000
         self.server = subprocess.Popen(f'python doctor_threaded.py {self.PORT}')
         self.server_url = f'http://127.0.0.1:{self.PORT}/'
+        self.sample_file = 'Upload/roadmap.pdf'
 
         sleep(2)
 
@@ -54,16 +55,18 @@ class UploadTestCase(TestCase):
         # with open(sample_file, 'w') as file:
         #     file.write('Hello, world!')
 
-        with open('012 Non-Repeating Character (Difficulty = __).mp4', 'rb') as file:
+        with open(self.sample_file, 'rb') as file:
             files = {'file': file}
             headers = {
-                'Content-Type': 'text/plain',
-                'Content-Disposition': 'attachment; filename="sample_file.txt"'
+                'Content-Type': 'application/x-www-form-urlencoded'
             }
-            print(requests.post(self.server_url,
-                                # files=files,
-                                headers=headers).status_code)
-        # request  = Request(self.server_url, 
+            response = requests.post(
+                self.server_url,
+                files=files,
+                headers=headers
+            )
+            self.assertEqual(response.status_code, 200)  # сравниваем код ответа с кодом 200 ОК
+        # request  = Request(self.server_url,
         #                    data=open('012 Non-Repeating Character (Difficulty = __).mp4', 'rb'), 
         #                    headers={'Content-Type': 'video/mpeg'})
         # print(requests.get(self.server_url).status_code)
