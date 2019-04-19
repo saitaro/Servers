@@ -1,15 +1,12 @@
 from unittest import main, TestCase
 import io
 import subprocess
+import time
 from urllib.request import Request, urlopen
 from urllib.parse import urlencode
-from time import sleep
 from os import path, getcwd, remove
-from time import sleep
 import requests
 import http.client
-import cgitb
-cgitb.enable()
 
 class GeneralTestCase(TestCase):
 
@@ -41,51 +38,44 @@ class UploadTestCase(TestCase):
 
     def setUp(self):
         self.PORT = 8000
-        self.server = subprocess.Popen(f'python doctor_threaded.py {self.PORT}')
+        self.server = subprocess.Popen(
+            f'python doctor_threaded.py {self.PORT}'
+        )
         self.server_url = f'http://127.0.0.1:{self.PORT}/'
+        self.sample_file = 'git.pdf'
 
-        sleep(2)
+        time.sleep(2)
 
     def tearDown(self):
         self.server.terminate()
 
     def test_upload_file(self):
-#         # sample_file = path.join(getcwd(), 'sample_file.txt')
-#         # with open(sample_file, 'w') as file:
-#         #     file.write('Hello, world!')
+        # sample_file = path.join(getcwd(), 'sample_file.txt')
+        # with open(sample_file, 'w') as file:
+        #     file.write('Hello, world!')
 
-#         with open('012 Non-Repeating Character (Difficulty = __).mp4', 'rb') as file:
-#             files = {'file': file}
-#             headers = {
-#                 'Content-Type': 'text/plain',
-#                 'Content-Disposition': 'attachment; filename="sample_file.txt"'
-#             }
-#             print(requests.post(self.server_url,
-#                                 # files=files,
-#                                 headers=headers).status_code)
-#         # request  = Request(self.server_url, 
-#         #                    data=open('012 Non-Repeating Character (Difficulty = __).mp4', 'rb'), 
-#         #                    headers={'Content-Type': 'video/mpeg'})
-#         # print(requests.get(self.server_url).status_code)
-#         # response = urlopen(request).read().decode()
-#         # sample_file.close()
-#         # remove('sample_file.txt')
-        DATA = b'some data'
-        req = Request(url=self.server_url, data=DATA)
-        with urlopen(req) as f:
-            pass
-        print(f.status)
-        print(f.reason)
+        with open(self.sample_file, 'rb') as file:
+            files = {'file': file}
+            headers = {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+            response = requests.post(
+                self.server_url,
+                files=files,
+                headers=headers
+            )
+            self.assertEqual(response.status_code, 200)  # сравниваем код ответа с кодом 200 ОК
+        # request  = Request(self.server_url,
+        #                    data=open('012 Non-Repeating Character (Difficulty = __).mp4', 'rb'), 
+        #                    headers={'Content-Type': 'video/mpeg'})
+        # print(requests.get(self.server_url).status_code)
+        # response = urlopen(request).read().decode()
+        # sample_file.close()
+        # remove('sample_file.txt')
 
 
-    def test_check_uploaded_file(self):
-        right_id = '5ec06cc1-efbb-44cf-bda0-3b0b0999ac84'
-        params = urlencode({'id': right_id})
-        response = urlopen(self.server_url + '?' + params)
 
-        self.assertEqual(response.status, 200)
-        self.assertEqual(response.read().decode(),
-                         'git.pdf was uploaded at 2019-04-18 19:03:19.083186')
+    # def test_check_uploaded_file(self):
         
 # class DownloadTestCase(TestCase):
     

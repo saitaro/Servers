@@ -148,11 +148,7 @@ class HttpHandler(BaseHTTPRequestHandler):
             environ={'REQUEST_METHOD': 'POST',
                      'CONTENT_TYPE': self.headers['Content-Type']}
         )
-        code = 400 if form.list else 333
-        try:
-            filename = form.list[0].filename
-        except TypeError:
-            filename = 'filename.not_provided'
+        filename = form.list[0].filename
         extension = re.findall(r'.+\.(\S+)', filename)[0]
         filepath = path.join(getcwd(), FILEDIR, f'{uuid}.{extension}')
 
