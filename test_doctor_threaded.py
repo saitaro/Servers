@@ -1,18 +1,25 @@
 from unittest import main, TestCase
-import io
 import subprocess
-import time
+import socket
+from datetime import datetime
+from time import sleep
+import requests
+import os
 from urllib.request import Request, urlopen
 from urllib.parse import urlencode
 from os import path, getcwd, remove
-import requests
-import http.client
+import filecmp
+
+from doctor_threaded import BASE_DIR, FILEDIR
+
+# BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# FILEDIR = os.path.join(BASE_DIR, 'Uploads')
 
 class GeneralTestCase(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.PORT = 8080
+        cls.PORT = 8000
         cls.server_url = f'http://127.0.0.1:{cls.PORT}/'
         cls.server = subprocess.Popen(f'python doctor_threaded.py {cls.PORT}')
 
@@ -36,47 +43,47 @@ class GeneralTestCase(TestCase):
 
 class UploadTestCase(TestCase):
 
-    def setUp(self):
-        self.PORT = 8000
-        self.server = subprocess.Popen(
-            f'python doctor_threaded.py {self.PORT}'
-        )
-        self.server_url = f'http://127.0.0.1:{self.PORT}/'
-        self.sample_file = 'git.pdf'
+    @classmethod
+    def setUpClass(cls):
+        cls.PORT = 5000
+        cls.server = subprocess.Popen(f'python doctor_threaded.py {cls.PORT}', shell=True)
+        cls.server_url = f'http://127.0.0.1:{cls.PORT}/'
+        cls.sample_file = path.join(BASE_DIR, 'sample_file.txt')
+        with open(cls.sample_file, 'w') as file:
+            file.write('Hello, world!')
+        # cls.sample_file = os.path.join(BASE_DIR, 'git.pdf')
+        # cls.sample_file = os.path.join(BASE_DIR, '012 Non-Repeating Character (Difficulty = __).mp4')
 
-        time.sleep(2)
-
-    def tearDown(self):
-        self.server.terminate()
+    @classmethod
+    def tearDownClass(cls):
+        cls.server.terminate()
 
     def test_upload_file(self):
-        # sample_file = path.join(getcwd(), 'sample_file.txt')
-        # with open(sample_file, 'w') as file:
-        #     file.write('Hello, world!')
-
         with open(self.sample_file, 'rb') as file:
-            files = {'file': file}
-            headers = {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            }
+            files = {'name': file}
             response = requests.post(
                 self.server_url,
-                files=files,
-                headers=headers
+                files=files
             )
-            self.assertEqual(response.status_code, 200)  # сравниваем код ответа с кодом 200 ОК
-        # request  = Request(self.server_url,
-        #                    data=open('012 Non-Repeating Character (Difficulty = __).mp4', 'rb'), 
-        #                    headers={'Content-Type': 'video/mpeg'})
-        # print(requests.get(self.server_url).status_code)
-        # response = urlopen(request).read().decode()
-        # sample_file.close()
-        # remove('sample_file.txt')
 
+        self.assertEqual(response.status_code, 201)
+        uuid = response.text
 
+        # Uploaded file is the same as the local one
+        _, extension = path.splitext(self.sample_file)
+        filecmp.clear_cache()
+        self.assertTrue(filecmp.cmp(self.sample_file,
+                                    path.join(FILEDIR, f'{uuid}{extension}')))
 
-    # def test_check_uploaded_file(self):
+        # Server responses with the proper filename
+        check_response = requests.get(self.server_url +'?id='+ uuid)
+        self.assertEqual(
+            check_response.text,
+            path.basename(self.sample_file))
         
+    def test_download_file(self):
+        pass
+
 # class DownloadTestCase(TestCase):
     
 #     def test_download_file(self):
