@@ -39,13 +39,13 @@ class UploadTestCase(TestCase):
 
     def setUp(self):
         self.PORT = 8000
-        # self.server = subprocess.Popen(f'python doctor_threaded.py {self.PORT}', shell=True)
+        self.server = subprocess.Popen(f'python doctor_threaded.py {self.PORT}', shell=True)
         self.server_url = f'http://127.0.0.1:{self.PORT}/'
         self.sample_file = os.path.join(FILEDIR, 'dca69777-ed30-4c1e-9192-d6862becfafd.png')
 
 
-    # def tearDown(self):
-    #     self.server.terminate()
+    def tearDown(self):
+        self.server.terminate()
 
 
     def test_upload_file(self):
