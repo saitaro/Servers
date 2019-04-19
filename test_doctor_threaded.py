@@ -1,13 +1,11 @@
 from unittest import main, TestCase
-import io
 import subprocess
-from urllib.request import Request, urlopen
-from urllib.parse import urlencode
-from time import sleep
-from os import path, getcwd, remove
 from time import sleep
 import requests
-import http.client
+import os
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FILEDIR = os.path.join(BASE_DIR, 'uploads')
 
 
 # class CheckTestCase(TestCase):
@@ -41,14 +39,14 @@ class UploadTestCase(TestCase):
 
     def setUp(self):
         self.PORT = 8000
-        self.server = subprocess.Popen(f'python doctor_threaded.py {self.PORT}')
+        # self.server = subprocess.Popen(f'python doctor_threaded.py {self.PORT}', shell=True)
         self.server_url = f'http://127.0.0.1:{self.PORT}/'
-        self.sample_file = 'Upload/roadmap.pdf'
+        self.sample_file = os.path.join(FILEDIR, 'dca69777-ed30-4c1e-9192-d6862becfafd.png')
 
-        sleep(2)
 
-    def tearDown(self):
-        self.server.terminate()
+    # def tearDown(self):
+    #     self.server.terminate()
+
 
     def test_upload_file(self):
         # sample_file = path.join(getcwd(), 'sample_file.txt')
@@ -56,16 +54,12 @@ class UploadTestCase(TestCase):
         #     file.write('Hello, world!')
 
         with open(self.sample_file, 'rb') as file:
-            files = {'file': file}
-            headers = {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            }
+            files = {'name': file}
             response = requests.post(
                 self.server_url,
-                files=files,
-                headers=headers
+                files=files
             )
-            self.assertEqual(response.status_code, 200)  # сравниваем код ответа с кодом 200 ОК
+            self.assertEqual(response.status_code, 201)  # сравниваем код ответа с кодом 201 Created
         # request  = Request(self.server_url,
         #                    data=open('012 Non-Repeating Character (Difficulty = __).mp4', 'rb'), 
         #                    headers={'Content-Type': 'video/mpeg'})
