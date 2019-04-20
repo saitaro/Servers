@@ -93,7 +93,7 @@ class UploadTestCase(unittest.TestCase):
 
         with sqlite3.connect(DATABASE) as conn:
             query = '''DELETE FROM filepaths
-                       WHERE uuid = :uuid
+                        WHERE uuid = :uuid
                     '''
             conn.execute(query, {'uuid': uuid})
         conn.close()
