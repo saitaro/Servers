@@ -4,9 +4,9 @@ import unittest
 import subprocess
 import filecmp
 import sqlite3
+from os import path, remove
 from urllib.request import urlopen, urlretrieve
 from urllib.parse import urlencode
-from os import path, remove, removedirs
 
 import requests
 
@@ -27,13 +27,13 @@ class GeneralTestCase(unittest.TestCase):
         cls.server.terminate()
 
     def test_server_responding(self):
-        '''Check the server responds for a get request.'''
+        '''Check the server responds to a get request.'''
         response = urlopen(self.server_url)
         self.assertEqual(response.status, 200)
 
     def test_wrong_file_id_response(self):
-        '''Check the request with a made-up file id gets back
-        a "No record" message'''
+        '''Check the request with a made-up file id
+        reveives a "No record" message'''
         wrong_id = 'wrong-id-0e18-4f06-8349-7cbf3155890d'
         params = urlencode({'id': wrong_id})
         bad_response = urlopen(self.server_url + '?' + params)
@@ -44,11 +44,11 @@ class GeneralTestCase(unittest.TestCase):
 
 
 class UploadTestCase(unittest.TestCase):
-    '''File uploading checks.'''
+    '''File manipulation checks.'''
 
     @classmethod
     def setUpClass(cls):
-        cls.PORT = 3000
+        cls.PORT = 8000
         cls.server = subprocess.Popen(f'python doctor_threaded.py {cls.PORT}')
         cls.server_url = f'http://127.0.0.1:{cls.PORT}/'
         cls.sample_file = path.join(BASE_DIR, 'sample_file.txt')
@@ -60,8 +60,8 @@ class UploadTestCase(unittest.TestCase):
         cls.server.terminate()
         remove(cls.sample_file)
 
-    def test_upload_file(self):
-        """Main checks for the server's ability to receive files."""
+    def test_file_operations(self):
+        """Check the server's ability to receive and return files."""
         with open(self.sample_file, 'rb') as file:
             response = requests.post(
                 self.server_url,
@@ -90,13 +90,12 @@ class UploadTestCase(unittest.TestCase):
 
         remove(download)
         remove(path.join(FILEDIR, f'{uuid}{extension}'))
+
         with sqlite3.connect(DATABASE) as conn:
-                query = '''DELETE FROM filepaths
-                           WHERE uuid = :uuid
-                        '''
-                conn.execute(query, {
-                    'uuid': uuid
-                })
+            query = '''DELETE FROM filepaths
+                        WHERE uuid = :uuid
+                    '''
+            conn.execute(query, {'uuid': uuid})
         conn.close()
 
 

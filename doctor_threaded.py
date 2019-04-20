@@ -25,7 +25,6 @@ FILEDIR = path.join(BASE_DIR, 'Uploads')
 
 class HttpHandler(BaseHTTPRequestHandler):
     '''A tiny request handler for uploading and downloading files.'''
-
     def __init__(self, *args, **kwargs) -> None:
         '''
         The handler class constructor. Before initialization checks if
