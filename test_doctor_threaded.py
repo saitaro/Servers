@@ -33,7 +33,7 @@ class GeneralTestCase(unittest.TestCase):
 
     def test_wrong_file_id_response(self):
         '''Check the request with a made-up file id
-        reveives a "No record" message'''
+        reveives a "No record for id" message'''
         wrong_id = 'wrong-id-0e18-4f06-8349-7cbf3155890d'
         params = urlencode({'id': wrong_id})
         bad_response = urlopen(self.server_url + '?' + params)

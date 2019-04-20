@@ -54,7 +54,7 @@ class HttpHandler(BaseHTTPRequestHandler):
             conn = sqlite3.connect(DATABASE)
             with closing(conn):
                 cursor = conn.cursor()
-                query = f'''SELECT filepath, filename, extension, upload_date
+                query = f'''SELECT filepath, filename, extension
                             FROM filepaths
                             WHERE uuid=:id;
                         '''
@@ -92,7 +92,7 @@ class HttpHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:  # pylint: disable=C0103
         '''
-        Check if a record for the given id exists in the DATABASE and
+        Check if the record for the given id exists in the DATABASE and
         send the respective response to user; if 'download' parameter
         provided, download the existing file to user from FILEPATH.
         Usage is as follows:
@@ -121,7 +121,7 @@ class HttpHandler(BaseHTTPRequestHandler):
             self.end_headers()
             return
 
-        filepath, filename, extension, _ = db_response
+        filepath, filename, extension = db_response
 
         if 'download' not in params:
             self.send_response(code=200)
@@ -133,8 +133,8 @@ class HttpHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # pylint: disable=C0103
         '''
-        Upload a file to FILEPATH and create the record for that
-        in the DATABASE, then send it's id in the response message.
+        Upload a file to the FILEPATH and create the record for that
+        in the DATABASE, then send it's id in the response body.
         Usage is as follows:
 
         UPLOAD
