@@ -1,21 +1,20 @@
-from unittest import main, TestCase
+"""Test module for doctor_threaded.py server script."""
+
+import unittest
 import subprocess
-import socket
-from datetime import datetime
-from time import sleep
-import requests
-import os
-from urllib.request import Request, urlopen
-from urllib.parse import urlencode
-from os import path, getcwd, remove
 import filecmp
+import sqlite3
+from urllib.request import urlopen, urlretrieve
+from urllib.parse import urlencode
+from os import path, remove, removedirs
 
-from doctor_threaded import BASE_DIR, FILEDIR
+import requests
 
-# BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# FILEDIR = os.path.join(BASE_DIR, 'Uploads')
+from doctor_threaded import BASE_DIR, FILEDIR, DATABASE
 
-class GeneralTestCase(TestCase):
+
+class GeneralTestCase(unittest.TestCase):
+    """Basic checks without files manipulation."""
 
     @classmethod
     def setUpClass(cls):
@@ -26,13 +25,15 @@ class GeneralTestCase(TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.server.terminate()
-        # sleep(1)
 
     def test_server_responding(self):
+        '''Check the server responds for a get request.'''
         response = urlopen(self.server_url)
         self.assertEqual(response.status, 200)
 
     def test_wrong_file_id_response(self):
+        '''Check the request with a made-up file id gets back
+        a "No record" message'''
         wrong_id = 'wrong-id-0e18-4f06-8349-7cbf3155890d'
         params = urlencode({'id': wrong_id})
         bad_response = urlopen(self.server_url + '?' + params)
@@ -41,31 +42,31 @@ class GeneralTestCase(TestCase):
         self.assertEqual(bad_response.reason,
                          f'No database record for id {wrong_id}')
 
-class UploadTestCase(TestCase):
+
+class UploadTestCase(unittest.TestCase):
+    '''File uploading checks.'''
 
     @classmethod
     def setUpClass(cls):
-        cls.PORT = 5000
-        cls.server = subprocess.Popen(f'python doctor_threaded.py {cls.PORT}', shell=True)
+        cls.PORT = 3000
+        cls.server = subprocess.Popen(f'python doctor_threaded.py {cls.PORT}')
         cls.server_url = f'http://127.0.0.1:{cls.PORT}/'
         cls.sample_file = path.join(BASE_DIR, 'sample_file.txt')
         with open(cls.sample_file, 'w') as file:
             file.write('Hello, world!')
-        # cls.sample_file = os.path.join(BASE_DIR, 'git.pdf')
-        # cls.sample_file = os.path.join(BASE_DIR, '012 Non-Repeating Character (Difficulty = __).mp4')
 
     @classmethod
     def tearDownClass(cls):
         cls.server.terminate()
+        remove(cls.sample_file)
 
     def test_upload_file(self):
+        """Main checks for the server's ability to receive files."""
         with open(self.sample_file, 'rb') as file:
-            files = {'name': file}
             response = requests.post(
                 self.server_url,
-                files=files
+                files={'name': file}
             )
-
         self.assertEqual(response.status_code, 201)
         uuid = response.text
 
@@ -76,19 +77,28 @@ class UploadTestCase(TestCase):
                                     path.join(FILEDIR, f'{uuid}{extension}')))
 
         # Server responses with the proper filename
-        check_response = requests.get(self.server_url +'?id='+ uuid)
-        self.assertEqual(
-            check_response.text,
-            path.basename(self.sample_file))
-        
-    def test_download_file(self):
-        pass
+        check_response = urlopen(self.server_url + '?id=' + uuid)
+        self.assertEqual(check_response.read().decode(),
+                         path.basename(self.sample_file))
 
-# class DownloadTestCase(TestCase):
-    
-#     def test_download_file(self):
-#         pass
+        # Downloaded file is the same as the previously uploaded
+        download, _ = urlretrieve(
+            self.server_url + '?id=' + uuid + '&download=1',
+            path.join(BASE_DIR, 'download')
+        )
+        self.assertTrue(filecmp.cmp(download, self.sample_file))
+
+        remove(download)
+        remove(path.join(FILEDIR, f'{uuid}{extension}'))
+        with sqlite3.connect(DATABASE) as conn:
+                query = '''DELETE FROM filepaths
+                           WHERE uuid = :uuid
+                        '''
+                conn.execute(query, {
+                    'uuid': uuid
+                })
+        conn.close()
 
 
 if __name__ == '__main__':
-    main()
+    unittest.main()
