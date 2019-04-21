@@ -43,8 +43,8 @@ class GeneralTestCase(unittest.TestCase):
                          f'No database record for id {wrong_id}')
 
 
-class UploadTestCase(unittest.TestCase):
-    '''File manipulation checks.'''
+class FileHandlingTestCase(unittest.TestCase):
+    '''File manipulations checks.'''
 
     @classmethod
     def setUpClass(cls):
