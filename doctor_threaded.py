@@ -1,5 +1,8 @@
 """A script running the server which receives files from user, saves
 them with a unique id (UUID) and sends them back by their id.
+
+User defined port number may be provided with the first command line
+argument, otherwise the default value PORT is used.
 """
 
 import cgi
