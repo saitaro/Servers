@@ -180,7 +180,7 @@ class HttpHandler(BaseHTTPRequestHandler):
                     'filepath': filepath,
                     'filename': filename,
                     'extension': extension,
-                    'upload_date': f'{datetime.now()}'
+                    'upload_date': datetime.now(),
                 })
             conn.close()
 
@@ -196,11 +196,11 @@ class HttpHandler(BaseHTTPRequestHandler):
 
 if __name__ == '__main__':
     try:
-        input_port = int(sys.argv[1])
-        if input_port not in range(65536):
+        INPUT_PORT = int(sys.argv[1])
+        if INPUT_PORT not in range(65536):
             print('Port number must be 0-65535. Using the default value.')
         else:
-            PORT = input_port
+            PORT = INPUT_PORT
     except ValueError:
         print('Port number must be an integer. Using the default value.')
     except IndexError:
