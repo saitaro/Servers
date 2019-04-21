@@ -193,11 +193,16 @@ class HttpHandler(BaseHTTPRequestHandler):
 
 if __name__ == '__main__':
     try:
-        PORT = int(sys.argv[1])
+        input_port = int(sys.argv[1])
+        if input_port not in range(65536):
+            print('Port number must be 0-65535. Using the default value.')
+        else:
+            PORT = input_port
     except ValueError:
         print('Port number must be an integer. Using the default value.')
     except IndexError:
         pass
+
     with ThreadingTCPServer((ADDRESS, PORT), HttpHandler) as httpd:
         print('Serving on port', PORT)
         SERVER_THREAD = Thread(httpd.serve_forever(), daemon=True)
