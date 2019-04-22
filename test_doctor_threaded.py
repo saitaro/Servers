@@ -7,6 +7,7 @@ import sqlite3
 from os import path, remove
 from urllib.request import urlopen, urlretrieve
 from urllib.parse import urlencode
+from platform import system
 
 import requests
 
@@ -18,8 +19,9 @@ class GeneralTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        cls.ADDRESS = '0.0.0.0' if system() is 'Linux' else '127.0.0.1'
         cls.PORT = 8000
-        cls.server_url = f'http://127.0.0.1:{cls.PORT}/'
+        cls.server_url = f'http://{cls.ADDRESS}:{cls.PORT}/'
         cls.server = subprocess.Popen(f'python doctor_threaded.py {cls.PORT}')
 
     @classmethod
@@ -48,9 +50,10 @@ class FileHandlingTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        cls.ADDRESS = '0.0.0.0' if system() is 'Linux' else '127.0.0.1'
         cls.PORT = 8000
         cls.server = subprocess.Popen(f'python doctor_threaded.py {cls.PORT}')
-        cls.server_url = f'http://127.0.0.1:{cls.PORT}/'
+        cls.server_url = f'http://{cls.ADDRESS}:{cls.PORT}/'
         cls.sample_file = path.join(BASE_DIR, 'sample_file.txt')
         with open(cls.sample_file, 'w') as file:
             file.write('Hello, world!')

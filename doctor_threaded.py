@@ -18,7 +18,6 @@ from typing import Union
 from urllib.parse import parse_qsl, urlsplit
 from uuid import uuid4
 
-
 ADDRESS, PORT = '0.0.0.0', 8000
 
 DATABASE = 'db.sqlite'
