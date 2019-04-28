@@ -10,15 +10,14 @@ import sqlite3
 import sys
 from contextlib import closing
 from datetime import datetime
-from http.server import BaseHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from os import path, makedirs
-from socketserver import ThreadingTCPServer
 from threading import Thread
 from typing import Union
 from urllib.parse import parse_qsl, urlsplit
 from uuid import uuid4
 
-ADDRESS, PORT = '0.0.0.0', 8000
+HOST, PORT = '127.0.0.1', 8000
 
 DATABASE = 'db.sqlite'
 BASE_DIR = path.dirname(path.abspath(__file__))
@@ -100,10 +99,10 @@ class HttpHandler(BaseHTTPRequestHandler):
         Usage is as follows:
 
         CHECK
-        http://<ADDRESS>:<PORT>/?id=<file_id>
+        http://<HOST>:<PORT>/?id=<file_id>
 
         DOWNLOAD
-        http://<ADDRESS>:<PORT>/?id=<file_id>&download=1
+        http://<HOST>:<PORT>/?id=<file_id>&download=1
         '''
         get_query = urlsplit(self.path).query
         params = dict(parse_qsl(get_query))
@@ -140,7 +139,7 @@ class HttpHandler(BaseHTTPRequestHandler):
         Usage is as follows:
 
         UPLOAD
-        POST request containing the file body to http://<ADDRESS>:<PORT>/
+        POST request containing the file body to http://<HOST>:<PORT>/
 
         Files are saved as <uuid>.<extension> to prevent name duplication.
         '''
@@ -205,7 +204,7 @@ if __name__ == '__main__':
     except IndexError:
         pass
 
-    with ThreadingTCPServer((ADDRESS, PORT), HttpHandler) as httpd:
+    with ThreadingHTTPServer((HOST, PORT), HttpHandler) as httpd:
         print('Serving on port', PORT)
-        SERVER_THREAD = Thread(httpd.serve_forever(), daemon=True)
+        SERVER_THREAD = Thread(target=httpd.serve_forever())
         SERVER_THREAD.start()
